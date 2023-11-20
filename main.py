@@ -1,13 +1,23 @@
 from flask import Flask, render_template, request
 import requests as req
+import random
+import time
 
 app = Flask(__name__)
 
 
 def read_api():
     # https://rutube.ru/api/metainfo/tv/28/video?sort=random
-    r = req.get('https://rutube.ru/api/tags/video/5994/?noSubs=true').json()
-    return r['results']
+    # https://rutube.ru/api/tags/video/5994/?noSubs=true&page=2
+    videos = []
+    for i in range(10):
+        url = "https://rutube.ru/api/tags/video/5994/?noSubs=true&page="+str(i+1)
+        print(url)
+        r = req.get(url).json()
+        print(r)
+        time.sleep(1)
+        videos.extend(r['results'])
+    return videos
 
 
 videos = read_api()
@@ -25,17 +35,22 @@ def find_video(query):
 def index():
     # videos = read_api()
     # print(videos)
-    return render_template('index.html', videos=videos, found=len(videos))
+    rnd_videos = random.sample(videos, 10)
+    return render_template('index.html', videos=rnd_videos, found=len(rnd_videos))
 
 
 @app.route("/autocomplete")
 def autocomplete():
+    # var data = [
+    #     {label: "annhhx10", category: "Products"},
+    #     {label: "andreas johnson", category: "People"}
+    # ];
     term = request.values['term']
     found_videos = find_video(term)
     video_titles = []
     for video in found_videos:
-        video_titles.append(video['title'])
-    return video_titles
+        video_titles.append({'label': video['title'], 'category': video['category']['name']})
+    return video_titles[:10]
 
 
 @app.route("/search")
@@ -51,3 +66,4 @@ def search():
 
 if __name__ == "__main__":
     app.run(debug=True)
+    #app.run(host='0.0.0.0', port=80)
